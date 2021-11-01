@@ -112,9 +112,46 @@ func walk(tokenizer *html.Tokenizer, token html.Token) interface{} {
 
 		// parse attributes
 		for _, attr := range token.Attr {
+			// Reference
 			if attr.Key[0] == '#' {
 				element.References = append(element.References, Reference{value: attr.Val})
+
+				// Output
+			} else if attr.Key[0] == '(' {
+				name := attr.Key[1 : len(attr.Key)-1]
+
+				element.Outputs = append(element.Outputs,
+					BoundEvent{
+						name:    name,
+						handler: AstWithSource{source: attr.Val},
+					})
+
+				// Input
+			} else if attr.Key[0] == '[' && attr.Key[1] != '(' {
+				name := attr.Key[1 : len(attr.Key)-1]
+
+				element.Inputs = append(element.Inputs,
+					BoundAttribute{
+						name:  name,
+						value: AstWithSource{source: attr.Val},
+					})
+
+				// Input / Output
+			} else if attr.Key[0] == '[' && attr.Key[1] == '(' {
+				name := attr.Key[2 : len(attr.Key)-2]
+
+				element.Inputs = append(element.Inputs,
+					BoundAttribute{
+						name:  name,
+						value: AstWithSource{source: attr.Val},
+					})
+				element.Outputs = append(element.Outputs,
+					BoundEvent{
+						name:    name,
+						handler: AstWithSource{source: attr.Val},
+					})
 			} else {
+				// Error
 				// TODO parse attributes
 				fmt.Println(attr.Key, " = ", attr.Val)
 			}
