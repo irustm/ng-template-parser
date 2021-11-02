@@ -18,9 +18,21 @@ type Reference struct {
 	value string
 }
 
+// https://github.com/angular/angular/blob/e112e320bf6c2b60e8ecea46f80bcaec593c65b7/packages/compiler/src/expression_parser/ast.ts
+type BindingType int
+
+const (
+	Property BindingType = iota
+	Attribute
+	Class
+	Style
+	Animation
+)
+
 type BoundAttribute struct {
-	name  string
-	value AstWithSource
+	name        string
+	bindingType BindingType
+	value       AstWithSource
 }
 
 type BoundEvent struct {
@@ -28,8 +40,32 @@ type BoundEvent struct {
 	handler AstWithSource
 }
 
+type Interpolation struct {
+	strings     []string
+	expressions []PropertyRead
+}
+type BoundText struct {
+	value AstWithSource
+}
+
+type AstParsed struct {
+	name string
+	args []interface{}
+}
+
 type AstWithSource struct {
+	ast    AstParsed
 	source string
+}
+
+// Ast parsed types
+type PropertyRead struct {
+	name string
+}
+
+type PropertyWrite struct {
+	name  string
+	value PropertyRead
 }
 
 type Text struct {
