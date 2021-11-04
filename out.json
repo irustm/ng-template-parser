@@ -1,0 +1,122 @@
+{
+  "Nodes": [
+    {
+      "Name": "div",
+      "Attributes": [
+        {
+          "Name": "1",
+          "Value": "log"
+        }
+      ],
+      "Inputs": [
+        {
+          "Name": "asd",
+          "BindingType": 2,
+          "Value": {
+            "Ast": {
+              "Name": "containera"
+            },
+            "Source": "containera"
+          }
+        },
+        {
+          "Name": "aa",
+          "BindingType": 0,
+          "Value": {
+            "Ast": {
+              "Name": "model"
+            },
+            "Source": "model"
+          }
+        }
+      ],
+      "Outputs": [
+        {
+          "Name": "clicka",
+          "BindingType": 0,
+          "Handler": {
+            "Ast": {
+              "Name": "onClick",
+              "Args": [
+                {
+                  "Name": "$event"
+                }
+              ]
+            },
+            "Source": "onClick($event)"
+          }
+        },
+        {
+          "Name": "aaChange",
+          "BindingType": 0,
+          "Handler": {
+            "Ast": {
+              "Name": "model",
+              "Value": {
+                "Name": "$event"
+              }
+            },
+            "Source": "model=$event"
+          }
+        }
+      ],
+      "References": [
+        {
+          "Name": "",
+          "Value": ""
+        }
+      ],
+      "Children": [
+        {
+          "Value": {
+            "Ast": {
+              "Strings": [
+                "\n    23 ",
+                "\n    kjkj "
+              ],
+              "Expressions": [
+                {
+                  "Name": "test"
+                },
+                {
+                  "Name": "test"
+                }
+              ]
+            },
+            "Source": "\n    23 {{test}}\n    kjkj {{test}}\n    "
+          }
+        },
+        {
+          "Name": "",
+          "Attributes": null,
+          "Inputs": null,
+          "Outputs": null,
+          "References": null,
+          "Children": [
+            {
+              "Value": "2"
+            }
+          ]
+        },
+        {
+          "Value": ""
+        }
+      ]
+    },
+    {
+      "Value": "\n\n"
+    },
+    {
+      "Name": "div",
+      "Attributes": null,
+      "Inputs": null,
+      "Outputs": null,
+      "References": null,
+      "Children": [
+        {
+          "Value": "\n    aa\n"
+        }
+      ]
+    }
+  ]
+}

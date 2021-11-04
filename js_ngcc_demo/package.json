@@ -1,0 +1,14 @@
+{
+  "name": "ng_demo",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.mjs",
+  "scripts": {
+    "start": "node index.mjs"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@angular/compiler": "^13.0.0"
+  }
+}

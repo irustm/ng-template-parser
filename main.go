@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 )
 
 type TextAttribute struct {
@@ -109,24 +110,23 @@ type Root struct {
 }
 
 func main() {
-	//	template := `<div #ida1 [class.asd]="containera" log="1" (clicka)="onClick($event)" [(aa)]="model">23{{test}}
-	//kjkj{{test}} <div>2</div>
-	//</div>
-	//
-	//<div>
-	//  aa
-	//</div>`
-
 	//r := strings.NewReader(template)
 
 	f, _ := os.Open("template.html")
 
+	t := time.Now()
+
 	tokenizer := html.NewTokenizer(f)
+
+	start := time.Now()
 
 	data := parse(tokenizer)
 
-	file, _ := json.MarshalIndent(data, "", " ")
+	elapsed := t.Sub(start)
+	println(elapsed.Milliseconds())
 
+	file, _ := json.Marshal(data)
+	//
 	_ = ioutil.WriteFile("out.json", file, 0644)
 }
 
