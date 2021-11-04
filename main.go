@@ -1,79 +1,98 @@
 package main
 
 import (
-	"fmt"
+	"encoding/json"
 	"golang.org/x/net/html"
 	"io"
+	"io/ioutil"
 	"log"
+	"os"
 	"strings"
 )
 
 type TextAttribute struct {
-	name  string
-	value string
+	Name  string
+	Value string
 }
 
 type Reference struct {
-	name  string
-	value string
+	Name  string
+	Value string
 }
 
 // https://github.com/angular/angular/blob/e112e320bf6c2b60e8ecea46f80bcaec593c65b7/packages/compiler/src/expression_parser/ast.ts
 type BindingType int
 
 const (
-	Property BindingType = iota
-	Attribute
-	Class
-	Style
-	Animation
+	BindingTypeProperty BindingType = iota
+	BindingTypeAttribute
+	BindingTypeClass
+	BindingTypeStyle
+	BindingTypeAnimation
 )
 
 type BoundAttribute struct {
-	name        string
-	bindingType BindingType
-	value       AstWithSource
+	Name        string
+	BindingType BindingType
+	Value       AstWithSourcePropertyRead
 }
 
 type BoundEvent struct {
-	name    string
-	handler AstWithSource
+	Name        string
+	BindingType BindingType
+	Handler     interface{}
 }
 
 type Interpolation struct {
-	strings     []string
-	expressions []PropertyRead
+	Strings     []string
+	Expressions []PropertyRead
 }
 type BoundText struct {
-	value AstWithSource
+	Value AstWithSourceInterpolation
 }
 
-type AstParsed struct {
-	name string
-	args []interface{}
+type AstWithSourcePropertyRead struct {
+	Ast    PropertyRead
+	Source string
 }
 
-type AstWithSource struct {
-	ast    AstParsed
-	source string
+type AstWithSourceMethodCall struct {
+	Ast    MethodCall
+	Source string
+}
+
+type AstWithSourceInterpolation struct {
+	Ast    Interpolation
+	Source string
+}
+
+type AstWithSourcePropertyWrite struct {
+	Ast    PropertyWrite
+	Source string
 }
 
 // Ast parsed types
+
 type PropertyRead struct {
-	name string
+	Name string
 }
 
 type PropertyWrite struct {
-	name  string
-	value PropertyRead
+	Name  string
+	Value PropertyRead
+}
+
+type MethodCall struct {
+	Name string
+	Args []PropertyRead
 }
 
 type Text struct {
-	value string
+	Value string
 }
 
 type Comment struct {
-	value string
+	Value string
 }
 
 type Element struct {
@@ -90,20 +109,25 @@ type Root struct {
 }
 
 func main() {
-	template := `
-       <div #ida1 [class.asd]="containera" log="1" (click)="onClick($event)" [(aa)]="model">
-		{{test}} 
-       </div>`
+	//	template := `<div #ida1 [class.asd]="containera" log="1" (clicka)="onClick($event)" [(aa)]="model">23{{test}}
+	//kjkj{{test}} <div>2</div>
+	//</div>
+	//
+	//<div>
+	//  aa
+	//</div>`
 
-	r := strings.NewReader(template)
-	tokenizer := html.NewTokenizer(r)
+	//r := strings.NewReader(template)
 
-	parse(tokenizer)
+	f, _ := os.Open("template.html")
 
-	//for _, element := range root.Nodes {
-	//	fmt.Println(element)
-	//}
+	tokenizer := html.NewTokenizer(f)
 
+	data := parse(tokenizer)
+
+	file, _ := json.MarshalIndent(data, "", " ")
+
+	_ = ioutil.WriteFile("out.json", file, 0644)
 }
 
 func parse(tokenizer *html.Tokenizer) Root {
@@ -131,16 +155,43 @@ func parse(tokenizer *html.Tokenizer) Root {
 func walk(tokenizer *html.Tokenizer, token html.Token) interface{} {
 	tokenType := token.Type
 
-	println(token.String())
-
 	if tokenType == html.TextToken {
+		data := token.Data
 		tokenizer.Next()
-		return Text{value: token.Data}
+
+		if strings.Contains(data, "{{") {
+			var strings []string
+			var expressions []PropertyRead
+			var buff []uint8
+
+			for i := 0; i < len(data); i++ {
+				if data[i] == '{' {
+					// add latest
+					strings = append(strings, string(buff))
+					buff = nil
+					i += 1
+				} else if data[i] == '}' {
+					// add latest
+					expressions = append(expressions, PropertyRead{Name: string(buff)})
+					buff = nil
+					i += 1
+				} else {
+					buff = append(buff, data[i])
+				}
+			}
+
+			return BoundText{Value: AstWithSourceInterpolation{
+				Ast:    Interpolation{Strings: strings, Expressions: expressions},
+				Source: data,
+			}}
+		}
+
+		return Text{Value: data}
 	}
 
 	if tokenType == html.CommentToken {
 		tokenizer.Next()
-		return Comment{value: token.Data}
+		return Comment{Value: token.Data}
 	}
 
 	if tokenType == html.StartTagToken {
@@ -150,26 +201,55 @@ func walk(tokenizer *html.Tokenizer, token html.Token) interface{} {
 		for _, attr := range token.Attr {
 			// Reference
 			if attr.Key[0] == '#' {
-				element.References = append(element.References, Reference{value: attr.Val})
+				element.References = append(element.References, Reference{Value: attr.Val})
 
 				// Output
 			} else if attr.Key[0] == '(' {
 				name := attr.Key[1 : len(attr.Key)-1]
+				source := attr.Val
+				sourceSplit := strings.Split(source, "(")
+
+				handlerName := sourceSplit[0]
+				propName := sourceSplit[1][:len(sourceSplit[1])-1]
+
+				var outputArgs []PropertyRead
+				outputArgs = append(outputArgs, PropertyRead{Name: propName})
 
 				element.Outputs = append(element.Outputs,
 					BoundEvent{
-						name:    name,
-						handler: AstWithSource{source: attr.Val},
+						Name:    name,
+						Handler: AstWithSourceMethodCall{Source: source, Ast: MethodCall{Name: handlerName, Args: outputArgs}},
 					})
 
 				// Input
 			} else if attr.Key[0] == '[' && attr.Key[1] != '(' {
 				name := attr.Key[1 : len(attr.Key)-1]
+				// [class.asd]
+				nameStrings := strings.Split(name, ".")
+				inputTypeString := nameStrings[0]
+				bindingType := BindingTypeProperty
+
+				if inputTypeString == "class" {
+					bindingType = BindingTypeClass
+				}
+
+				if inputTypeString == "style" {
+					bindingType = BindingTypeStyle
+				}
+
+				if inputTypeString == "attr" {
+					bindingType = BindingTypeAttribute
+				}
+
+				if bindingType != BindingTypeProperty {
+					name = nameStrings[1]
+				}
 
 				element.Inputs = append(element.Inputs,
 					BoundAttribute{
-						name:  name,
-						value: AstWithSource{source: attr.Val},
+						Name:        name,
+						BindingType: bindingType,
+						Value:       AstWithSourcePropertyRead{Source: attr.Val, Ast: PropertyRead{Name: attr.Val}},
 					})
 
 				// Input / Output
@@ -178,25 +258,39 @@ func walk(tokenizer *html.Tokenizer, token html.Token) interface{} {
 
 				element.Inputs = append(element.Inputs,
 					BoundAttribute{
-						name:  name,
-						value: AstWithSource{source: attr.Val},
+						Name:        name,
+						BindingType: BindingTypeProperty,
+						Value: AstWithSourcePropertyRead{
+							Source: attr.Val,
+							Ast:    PropertyRead{Name: attr.Val},
+						},
 					})
+
+				handlerName := name + "Change"
+				ast := PropertyWrite{Name: attr.Val, Value: PropertyRead{Name: "$event"}}
+
 				element.Outputs = append(element.Outputs,
 					BoundEvent{
-						name:    name,
-						handler: AstWithSource{source: attr.Val},
+						Name:        handlerName,
+						BindingType: BindingTypeProperty,
+						Handler:     AstWithSourcePropertyWrite{Source: attr.Val + "=$event", Ast: ast},
 					})
 			} else {
-				// Error
-				// TODO parse attributes
-				fmt.Println(attr.Key, " = ", attr.Val)
+				element.Attributes = append(element.Attributes,
+					TextAttribute{
+						Name:  attr.Val,
+						Value: attr.Key,
+					})
+
+				// TODO Error
+				//fmt.Println(attr.Key, " = ", attr.Val)
 			}
 		}
 
 		tokenType = tokenizer.Next()
-		token = tokenizer.Token()
 
 		for tokenType != html.EndTagToken {
+			token = tokenizer.Token()
 			element.Children = append(element.Children, walk(tokenizer, token))
 			tokenType = tokenizer.Token().Type
 		}
