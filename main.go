@@ -21,7 +21,7 @@ type Reference struct {
 	Value string
 }
 
-// https://github.com/angular/angular/blob/e112e320bf6c2b60e8ecea46f80bcaec593c65b7/packages/compiler/src/expression_parser/ast.ts
+// https://github.com/angular/angular/blob/master/packages/compiler/src/expression_parser/ast.ts
 type BindingType int
 
 const (
