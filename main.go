@@ -32,6 +32,22 @@ const (
 	BindingTypeAnimation
 )
 
+type LiteralPrimitive struct {
+	value interface{}
+}
+
+type BinaryCondition struct {
+	Operation string
+	Left      interface{}
+	Right     interface{}
+}
+
+type Conditional struct {
+	Condition interface{}
+	trueExp   interface{}
+	falseExp  interface{}
+}
+
 type BoundAttribute struct {
 	Name        string
 	BindingType BindingType
@@ -172,6 +188,7 @@ func walk(tokenizer *html.Tokenizer, token html.Token) interface{} {
 					i += 1
 				} else if data[i] == '}' {
 					// add latest
+					/// TODO add expression parser
 					expressions = append(expressions, PropertyRead{Name: string(buff)})
 					buff = nil
 					i += 1
