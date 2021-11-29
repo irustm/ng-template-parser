@@ -11,4 +11,4 @@ const end = Date.now();
 
 console.log(end - start);
 
-fs.writeFileSync("out.json", JSON.stringify(data));
+// fs.writeFileSync("out.json", JSON.stringify(data));
