@@ -4,7 +4,7 @@
 
 ### Benchmark
 
-100k line of template
+100k line of template (not uses expressions)
 
 | Parser                            | ms   |
 | --------------------------------- | ---- |
